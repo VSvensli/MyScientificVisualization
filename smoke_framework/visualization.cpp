@@ -259,6 +259,8 @@ void Visualization::applyQuantization(std::vector<float> &scalarValues) const
     // The variable m_quantizationBits ('n' in the lecture slides) is set in the GUI and can be used here.
     // L needs to be set to the appropriate value and will be used to set the clamping range in the GUI.
 
+    // step is the new bin size. Deviding by step will yield the new range of values, flooring
+    // thise values will result in the quantization of the image.
     unsigned int const step = std::pow(2,8-m_quantizationBits);
 
     for(size_t i=0U; i<image.size(); i++)
