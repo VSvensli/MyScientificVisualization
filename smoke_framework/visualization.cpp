@@ -259,8 +259,16 @@ void Visualization::applyQuantization(std::vector<float> &scalarValues) const
     // The variable m_quantizationBits ('n' in the lecture slides) is set in the GUI and can be used here.
     // L needs to be set to the appropriate value and will be used to set the clamping range in the GUI.
 
-    unsigned int const L = 1U; // placeholder value
-    qDebug() << "Quantization not implemented";
+    unsigned int const step = std::pow(2,8-m_quantizationBits);
+
+    for(size_t i=0U; i<image.size(); i++)
+    {
+        image[i]= std::floor((1+image[i])/step);
+    }
+
+
+    unsigned int const L = std::pow(2,m_quantizationBits)-1; // placeholder value
+
 
     // Convert the image's data back to floating point values, so that it can be processed as usual.
     scalarValues = std::vector<float>{image.cbegin(), image.cend()};
