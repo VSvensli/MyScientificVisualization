@@ -309,26 +309,48 @@ void Visualization::applyGradients(std::vector<float> &scalarValues) const
  */
 void Visualization::applySlicing(std::vector<float> &scalarValues)
 {
-    qDebug() << "Slicing not implemented";
     // Add code here and below to complete the implementation
+    m_slicingCube.insert(m_slicingCube.begin(),scalarValues);
+    m_slicingCube.pop_back();
+
+    std::vector<float> m_slice;
+
 
     switch (m_slicingDirection)
     {
     case SlicingDirection::x:
         // xIdx is constant
-        qDebug() << "Slicing in x not implemented";
+        // i is the ith row of x at columnt sliceIdx
+        // j is the jth row of t
+        for(size_t i=0U; i< m_DIM;i++)
+        {
+            for(size_t j= 0U; j < m_DIM; j++)
+            {
+                m_slice.push_back(m_slicingCube[j][i*m_DIM + m_sliceIdx]);
+            }
+        }
         break;
 
     case SlicingDirection::y:
         // yIdx is constant
-        qDebug() << "Slicing in y not implemented";
+        // i is the ith column of y at row sliceIdx
+        // j is the jth row of t
+        for(size_t i=0U; i< m_DIM;i++)
+        {
+            for(size_t j= 0U; j < m_DIM; j++)
+            {
+                m_slice.push_back(m_slicingCube[j][i+m_DIM * m_sliceIdx]);
+            }
+        }
         break;
 
     case SlicingDirection::t:
         // t is constant
-        qDebug() << "Slicing in t not implemented";
+        m_slice = m_slicingCube[m_sliceIdx];
         break;
     }
+    scalarValues = m_slice;
+
 }
 
 void Visualization::applyPreprocessing(std::vector<float> &scalarValues)
