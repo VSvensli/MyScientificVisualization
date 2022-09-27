@@ -288,7 +288,9 @@ void Visualization::applyGaussianBlur(std::vector<float> &scalarValues) const
     // First, define a 3x3 matrix for the kernel.
     // (Use a C-style 2D array, a std::array of std::array's, or a std::vector of std::vectors)
 
-    std::vector<std::vector<int>> kernel{{1,2,1},{2,4,2},{1,2,1}};
+    std::vector<std::vector<int>> kernel{{1,2,1},
+                                         {2,4,2},
+                                         {1,2,1}};
     std::vector<float> image(scalarValues.size(),0.0f);
     image.reserve(scalarValues.size());
 
@@ -327,8 +329,9 @@ void Visualization::applyGaussianBlur(std::vector<float> &scalarValues) const
                         colAddition = -m_DIM;
                     }
                     int kernelColIdx = (j-2)+col + colAddition;
+                    int kernelIdx = kernelColIdx + kernelRowIdx;
 
-                    value = value + scalarValues[kernelColIdx + kernelRowIdx]*kernel[j-1][i-1];
+                    value += scalarValues[kernelIdx]*kernel[j-1][i-1];
                 }
             }
             unsigned int idx = col + row*m_DIM;
@@ -350,7 +353,63 @@ void Visualization::applyGradients(std::vector<float> &scalarValues) const
     // Calculate the Gradient direction
     // Visualize the Gradient magnitude
 
-    qDebug() << "applyGradients not implemented";
+    // Magniture is found by sqrt(Kx^2 + Ky^2)
+    // Direction is found by atan2(Kx,Ky)   atan2(x,y) = atan(x/y)
+    std::vector<std::vector<int>> kernelX{{1,0,-1},
+                                          {2,0,-2},
+                                          {1,0,-1}};
+
+    std::vector<std::vector<int>> kernelY{{1,2,1},
+                                          {0,0,0},
+                                          {-1,-2,-1}};
+
+    std::vector<float> magnetude(scalarValues.size(),0.0F);
+    std::vector<float> direction(scalarValues.size(),0.0F);
+
+    for(size_t col = 0U; col < m_DIM; col++)
+    {
+        for(size_t row = 0U; row < m_DIM; row++)
+        {
+            float Kx = 0.0f;
+            float Ky = 0.0f;
+            for(int i = 1; i <= 3;i++)
+            {
+                int rowAddition = 0;
+                if(row == 0 && i == 1)
+                {
+                    rowAddition = m_DIM*m_DIM;
+                }
+                if(row == m_DIM-1 && i == 3)
+                {
+                    rowAddition = -m_DIM*m_DIM;
+                }
+                int kernelRowIdx = (i-2)*m_DIM+row*m_DIM + rowAddition;
+
+                for(int j = 1; j <= 3;j++)
+                {
+                    int colAddition = 0;
+                    if(col == 0 && j == 1)
+                    {
+                        colAddition = m_DIM;
+                    }
+                    if(col == m_DIM-1 && j == 3)
+                    {
+                        colAddition = -m_DIM;
+                    }
+                    int kernelColIdx = (j-2)+col + colAddition;
+                    int kernelIdx = kernelColIdx + kernelRowIdx;
+
+                    Kx += scalarValues[kernelIdx]*kernelX[j-1][i-1];
+                    Ky += scalarValues[kernelIdx]*kernelY[j-1][i-1];
+
+                }
+            }
+            unsigned int idx = col + row*m_DIM;
+            magnetude[idx] = std::sqrt(std::pow(Kx,2)+std::pow(Ky,2));
+            direction[idx] = std::atan2(Kx,Ky);
+        }
+    }
+    scalarValues = magnetude;
 }
 
 /* This function receives a *reference* to a std::vector<float>,
