@@ -288,7 +288,56 @@ void Visualization::applyGaussianBlur(std::vector<float> &scalarValues) const
     // First, define a 3x3 matrix for the kernel.
     // (Use a C-style 2D array, a std::array of std::array's, or a std::vector of std::vectors)
 
-    qDebug() << "Gaussian blur not implemented";
+    std::vector<std::vector<int>> kernel{{1,2,1},{2,4,2},{1,2,1}};
+    std::vector<float> image(scalarValues.size(),0.0f);
+    image.reserve(scalarValues.size());
+
+    // Edge cases where the blure should wrap around the edge. The kernel indexes represents
+    // the scalarValue indexes that will be multiplied with the kernel and sumed in 'value'
+    // which are written to a temporary buffer 'image' which holds all the blured values.
+    // after looping thourgh each value 'scalarValues' are overwritten by 'image'.
+
+    for(size_t col = 0U; col < m_DIM; col++)
+    {
+        for(size_t row = 0U; row < m_DIM; row++)
+        {
+            float value = 0;
+            for(int i = 1; i <= 3;i++)
+            {
+                int rowAddition = 0;
+                if(row == 0 && i == 1)
+                {
+                    rowAddition = m_DIM*m_DIM;
+                }
+                if(row == m_DIM-1 && i == 3)
+                {
+                    rowAddition = -m_DIM*m_DIM;
+                }
+                int kernelRowIdx = (i-2)*m_DIM+row*m_DIM + rowAddition;
+
+                for(int j = 1; j <= 3;j++)
+                {
+                    int colAddition = 0;
+                    if(col == 0 && j == 1)
+                    {
+                        colAddition = m_DIM;
+                    }
+                    if(col == m_DIM-1 && j == 3)
+                    {
+                        colAddition = -m_DIM;
+                    }
+                    int kernelColIdx = (j-2)+col + colAddition;
+
+                    value = value + scalarValues[kernelColIdx + kernelRowIdx]*kernel[j-1][i-1];
+                }
+            }
+            unsigned int idx = col + row*m_DIM;
+            value = value/16;
+            image[idx] = value;
+        }
+    }
+    scalarValues = std::vector<float>{image.cbegin(), image.cend()};;
+
 }
 
 void Visualization::applyGradients(std::vector<float> &scalarValues) const
