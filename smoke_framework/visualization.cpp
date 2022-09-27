@@ -336,7 +336,7 @@ void Visualization::applyGaussianBlur(std::vector<float> &scalarValues) const
             image[idx] = value;
         }
     }
-    scalarValues = std::vector<float>{image.cbegin(), image.cend()};;
+    scalarValues = image;
 
 }
 
