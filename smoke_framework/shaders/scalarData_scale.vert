@@ -16,13 +16,9 @@ void main()
 {
     gl_Position = projectionTransform * vec4(vertCoordinates_in, 0.0F, 1.0F);
 
-    
-    value = (value_in - rangeMin)/(rangeMax-rangeMin);
-    
     // Map values from [rangeMin, rangeMax] to [0, 1].
-    //value = rangeMin + rangeMax; // Remove this placeholder computation
+    value = rangeMin + rangeMax; // Remove this placeholder computation
 
     // Apply transfer function.
     value = pow(value, transferK);
-    
 }

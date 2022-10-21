@@ -60,7 +60,6 @@ void Visualization::initializeGL() {
 
     glClearColor(0.2F, 0.1F, 0.2F, 1.0F);
 
-
     // Retrieve default textures.
     auto const mainWindowPtr = qobject_cast<MainWindow*>(parent()->parent());
     std::vector<Color> const defaultScalarDataColorMap = mainWindowPtr->m_defaultScalarDataColorMap;
@@ -210,7 +209,7 @@ void Visualization::drawGlyphs()
      */
     modelTransformationMatrices = std::vector<float>(numberOfInstances * 16U, 0.0F); // Remove this placeholder initialization
 
-
+    // TODO: This shouldn't be here, but otherwise re-binding an already bound Glyphs VAO causes glitches.
     glBindVertexArray(0);
 
     // Buffering section starts here.
@@ -259,18 +258,8 @@ void Visualization::applyQuantization(std::vector<float> &scalarValues) const
     // The variable m_quantizationBits ('n' in the lecture slides) is set in the GUI and can be used here.
     // L needs to be set to the appropriate value and will be used to set the clamping range in the GUI.
 
-    // step is the new bin size. Deviding by step will yield the new range of values, flooring
-    // thise values will result in the quantization of the image.
-    unsigned int const step = std::pow(2,8-m_quantizationBits);
-
-    for(size_t i=0U; i<image.size(); i++)
-    {
-        image[i]= std::floor((1+image[i])/step);
-    }
-
-
-    unsigned int const L = std::pow(2,m_quantizationBits)-1; // placeholder value
-
+    unsigned int const L = 1U; // placeholder value
+    qDebug() << "Quantization not implemented";
 
     // Convert the image's data back to floating point values, so that it can be processed as usual.
     scalarValues = std::vector<float>{image.cbegin(), image.cend()};
@@ -288,59 +277,7 @@ void Visualization::applyGaussianBlur(std::vector<float> &scalarValues) const
     // First, define a 3x3 matrix for the kernel.
     // (Use a C-style 2D array, a std::array of std::array's, or a std::vector of std::vectors)
 
-    std::vector<std::vector<int>> kernel{{1,2,1},
-                                         {2,4,2},
-                                         {1,2,1}};
-    std::vector<float> image(scalarValues.size(),0.0f);
-    image.reserve(scalarValues.size());
-
-    // Edge cases where the blure should wrap around the edge. The kernel indexes represents
-    // the scalarValue indexes that will be multiplied with the kernel and sumed in 'value'
-    // which are written to a temporary buffer 'image' which holds all the blured values.
-    // after looping thourgh each value 'scalarValues' are overwritten by 'image'.
-
-    for(size_t col = 0U; col < m_DIM; col++)
-    {
-        for(size_t row = 0U; row < m_DIM; row++)
-        {
-            float value = 0;
-            for(int i = 1; i <= 3;i++)
-            {
-                int rowAddition = 0;
-                if(row == 0 && i == 1)
-                {
-                    rowAddition = m_DIM*m_DIM;
-                }
-                if(row == m_DIM-1 && i == 3)
-                {
-                    rowAddition = -m_DIM*m_DIM;
-                }
-                int kernelRowIdx = (i-2)*m_DIM+row*m_DIM + rowAddition;
-
-                for(int j = 1; j <= 3;j++)
-                {
-                    int colAddition = 0;
-                    if(col == 0 && j == 1)
-                    {
-                        colAddition = m_DIM;
-                    }
-                    if(col == m_DIM-1 && j == 3)
-                    {
-                        colAddition = -m_DIM;
-                    }
-                    int kernelColIdx = (j-2)+col + colAddition;
-                    int kernelIdx = kernelColIdx + kernelRowIdx;
-
-                    value += scalarValues[kernelIdx]*kernel[j-1][i-1];
-                }
-            }
-            unsigned int idx = col + row*m_DIM;
-            value = value/16;
-            image[idx] = value;
-        }
-    }
-    scalarValues = image;
-
+    qDebug() << "Gaussian blur not implemented";
 }
 
 void Visualization::applyGradients(std::vector<float> &scalarValues) const
@@ -353,63 +290,7 @@ void Visualization::applyGradients(std::vector<float> &scalarValues) const
     // Calculate the Gradient direction
     // Visualize the Gradient magnitude
 
-    // Magniture is found by sqrt(Kx^2 + Ky^2)
-    // Direction is found by atan2(Kx,Ky)   atan2(x,y) = atan(x/y)
-    std::vector<std::vector<int>> kernelX{{1,0,-1},
-                                          {2,0,-2},
-                                          {1,0,-1}};
-
-    std::vector<std::vector<int>> kernelY{{1,2,1},
-                                          {0,0,0},
-                                          {-1,-2,-1}};
-
-    std::vector<float> magnetude(scalarValues.size(),0.0F);
-    std::vector<float> direction(scalarValues.size(),0.0F);
-
-    for(size_t col = 0U; col < m_DIM; col++)
-    {
-        for(size_t row = 0U; row < m_DIM; row++)
-        {
-            float Kx = 0.0f;
-            float Ky = 0.0f;
-            for(int i = 1; i <= 3;i++)
-            {
-                int rowAddition = 0;
-                if(row == 0 && i == 1)
-                {
-                    rowAddition = m_DIM*m_DIM;
-                }
-                if(row == m_DIM-1 && i == 3)
-                {
-                    rowAddition = -m_DIM*m_DIM;
-                }
-                int kernelRowIdx = (i-2)*m_DIM+row*m_DIM + rowAddition;
-
-                for(int j = 1; j <= 3;j++)
-                {
-                    int colAddition = 0;
-                    if(col == 0 && j == 1)
-                    {
-                        colAddition = m_DIM;
-                    }
-                    if(col == m_DIM-1 && j == 3)
-                    {
-                        colAddition = -m_DIM;
-                    }
-                    int kernelColIdx = (j-2)+col + colAddition;
-                    int kernelIdx = kernelColIdx + kernelRowIdx;
-
-                    Kx += scalarValues[kernelIdx]*kernelX[j-1][i-1];
-                    Ky += scalarValues[kernelIdx]*kernelY[j-1][i-1];
-
-                }
-            }
-            unsigned int idx = col + row*m_DIM;
-            magnetude[idx] = std::sqrt(std::pow(Kx,2)+std::pow(Ky,2));
-            direction[idx] = std::atan2(Kx,Ky);
-        }
-    }
-    scalarValues = magnetude;
+    qDebug() << "applyGradients not implemented";
 }
 
 /* This function receives a *reference* to a std::vector<float>,
@@ -427,48 +308,26 @@ void Visualization::applyGradients(std::vector<float> &scalarValues) const
  */
 void Visualization::applySlicing(std::vector<float> &scalarValues)
 {
+    qDebug() << "Slicing not implemented";
     // Add code here and below to complete the implementation
-    m_slicingCube.insert(m_slicingCube.begin(),scalarValues);
-    m_slicingCube.pop_back();
-
-    std::vector<float> m_slice;
-
 
     switch (m_slicingDirection)
     {
     case SlicingDirection::x:
         // xIdx is constant
-        // i is the ith row of x at columnt sliceIdx
-        // j is the jth row of t
-        for(size_t i=0U; i< m_DIM;i++)
-        {
-            for(size_t j= 0U; j < m_DIM; j++)
-            {
-                m_slice.push_back(m_slicingCube[j][i*m_DIM + m_sliceIdx]);
-            }
-        }
+        qDebug() << "Slicing in x not implemented";
         break;
 
     case SlicingDirection::y:
         // yIdx is constant
-        // i is the ith column of y at row sliceIdx
-        // j is the jth row of t
-        for(size_t i=0U; i< m_DIM;i++)
-        {
-            for(size_t j= 0U; j < m_DIM; j++)
-            {
-                m_slice.push_back(m_slicingCube[j][i+m_DIM * m_sliceIdx]);
-            }
-        }
+        qDebug() << "Slicing in y not implemented";
         break;
 
     case SlicingDirection::t:
         // t is constant
-        m_slice = m_slicingCube[m_sliceIdx];
+        qDebug() << "Slicing in t not implemented";
         break;
     }
-    scalarValues = m_slice;
-
 }
 
 void Visualization::applyPreprocessing(std::vector<float> &scalarValues)
@@ -580,6 +439,65 @@ std::vector<float> Visualization::forceFieldDivergence() const
 std::vector<QVector3D> Visualization::computeNormals(std::vector<float> heights) const
 {
     return std::vector<QVector3D>(heights.size(), QVector3D(0,0,1));
+}
+
+static QVector4D transferFunction(float value)
+{
+    // Define colors for the colormap
+    QVector3D const colorNode0{0.0F, 0.0F, 1.0F}; // blue
+    // QVector3D const colorNode1{1.0F, 1.0F, 1.0F}; // white
+     QVector3D const colorNode1{0.0F, 1.0F, 0.0F}; // green
+    QVector3D const colorNode2{1.0F, 0.0F, 0.0F}; // red
+
+    value /= 255.0F; // to range [0...1]
+
+    float alpha = value * 0.5F; // value;
+    if (value < 0.2F)
+        alpha = 0.5F; // 0.0F;
+
+
+    QVector3D color0 = colorNode0;
+    QVector3D color1 = colorNode1;
+
+    float t = 0.0F;
+    if (value < 0.5F)
+    {
+        t = 2.0F * value;
+    }
+    else
+    {
+        t = 2.0F * (value - 0.5F);
+        color0 = colorNode1;
+        color1 = colorNode2;
+    }
+
+    QVector4D color;
+
+    color[3U] = alpha;
+
+    for (size_t idx = 0U; idx < 3U; ++idx) // rgb
+        color[idx] = color0[idx] * (1.0F - t) + color1[idx] * t;
+
+    return color;
+}
+
+static float opacityCorrection(float const alpha, float const sampleRatio)
+{
+     return 1.0F - std::pow(1.0F - alpha, sampleRatio);
+}
+
+std::vector<QVector4D> Visualization::computePreIntegrationLookupTable(size_t const DIM) const
+{
+    float const L = 100.0F; // total number of steps from 0 to delta-t
+
+    // TODO: modify the transferFunction and add necessary functions
+
+    // placeholder values
+    std::vector<QVector4D> lookupTable;
+    for (size_t idx = 0U; idx < DIM * DIM; ++idx)
+        lookupTable.push_back({0.5F, 0.5F, 0.5F, 1.0F});
+
+    return lookupTable;
 }
 
 void Visualization::onMessageLogged(QOpenGLDebugMessage const &Message) const

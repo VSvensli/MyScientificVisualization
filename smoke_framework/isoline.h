@@ -4,15 +4,10 @@
 #include <QVector2D>
 
 #include <array>
-#include <functional>
-#include <optional>
 #include <vector>
-
-using namespace std::placeholders;
 
 class Isoline
 {
-
 public:
     enum class AmbiguousCaseDecider
     {
