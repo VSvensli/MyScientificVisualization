@@ -28,8 +28,41 @@ void main()
 {
     gl_Position = viewTransform * projectionTransform * vec4(vertCoordinates_in, height, 1.0F);
 
-    // Placeholder values
-    value = clampMin + clampMax;
-    shading = transferK + material.x + lightPosition.x;
-    heightChange = normalTransform[0][0];
+    // Ambient
+    float ambient = material[0];
+
+    // Diffuse
+    vec3 fragPos = vec3(vertCoordinates_in, height);
+    vec3 lightDir = lightPosition-fragPos;
+    lightDir = normalize(lightDir);
+
+    vec3 norm = vertNormals_in*normalTransform;
+    norm = normalize(norm);
+
+    float diff = max(dot(lightDir,norm), 0.0) * material[1];
+
+    // Spectral
+    vec3 V = vec3(1,1,1);
+    V = normalize(V);
+
+    vec3 reflection = 2*dot(norm,lightDir)*norm- lightDir;
+    reflection = normalize(reflection);
+    //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    //vec3 specular = specularStrength * spec * lightColor;
+    float spec = pow(max(dot(reflection,V),0),material[3]) * material[2];
+
+    shading = transferK + ambient + diff + spec;
+
+    // Height change
+    heightChange = abs(vertNormals_in[0])+abs(vertNormals_in[1]);
+    heightChange = clamp(heightChange, 0, 1);
+
+    // Clamp values.
+    value = clamp(value_in, clampMin, clampMax);
+
+    // Map the range [clampMin, clampMax] to [0, 1].
+    value = (value-clampMin)/(clampMax-clampMin);
+
+
+    value = pow(value, transferK);
 }

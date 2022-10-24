@@ -579,7 +579,87 @@ std::vector<float> Visualization::forceFieldDivergence() const
 
 std::vector<QVector3D> Visualization::computeNormals(std::vector<float> heights) const
 {
-    return std::vector<QVector3D>(heights.size(), QVector3D(0,0,1));
+    std::vector<QVector3D> h (heights.size(), QVector3D(0,0,1));
+
+//    std::vector<float> dx;
+//    std::vector<float> dy;
+
+//    for(size_t x = 0U; x < m_DIM; x++){
+//        for(size_t y = 0U; y < m_DIM; y++){
+
+//            size_t idx = x + y * m_DIM;
+
+//            size_t xIdx = x+1;
+//            if (xIdx > m_DIM){
+//                xIdx = 0;
+//            }
+//            size_t yIdx = y+1;
+//            if (yIdx > m_DIM){
+//                yIdx = 0;
+//            }
+
+//            float dx = heights[xIdx + y * m_DIM] - heights[idx];
+//            float dy = heights[x + yIdx * m_DIM] - heights[idx];
+//            h[idx][0] = dx;
+//            h[idx][1] = dy;
+//        }
+
+//    }
+
+    std::vector<std::vector<int>> kernelX{{1,0,-1},
+                                          {2,0,-2},
+                                          {1,0,-1}};
+
+    std::vector<std::vector<int>> kernelY{{1,2,1},
+                                          {0,0,0},
+                                          {-1,-2,-1}};
+
+
+    for(size_t col = 0U; col < m_DIM; col++)
+    {
+        for(size_t row = 0U; row < m_DIM; row++)
+        {
+            float Kx = 0.0f;
+            float Ky = 0.0f;
+            for(int i = 1; i <= 3;i++)
+            {
+                int rowAddition = 0;
+                if(row == 0 && i == 1)
+                {
+                    rowAddition = m_DIM*m_DIM;
+                }
+                if(row == m_DIM-1 && i == 3)
+                {
+                    rowAddition = -m_DIM*m_DIM;
+                }
+                int kernelRowIdx = (i-2)*m_DIM+row*m_DIM + rowAddition;
+
+                for(int j = 1; j <= 3;j++)
+                {
+                    int colAddition = 0;
+                    if(col == 0 && j == 1)
+                    {
+                        colAddition = m_DIM;
+                    }
+                    if(col == m_DIM-1 && j == 3)
+                    {
+                        colAddition = -m_DIM;
+                    }
+                    int kernelColIdx = (j-2)+col + colAddition;
+                    int kernelIdx = kernelColIdx + kernelRowIdx;
+
+                    Kx += heights[kernelIdx]*kernelX[j-1][i-1];
+                    Ky += heights[kernelIdx]*kernelY[j-1][i-1];
+
+                }
+            }
+            unsigned int idx = col + row*m_DIM;
+            h[idx][0] = Kx;
+            h[idx][1] = Ky;
+
+        }
+    }
+    return h;
 }
 
 static QVector4D transferFunction(float value)
