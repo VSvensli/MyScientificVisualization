@@ -70,6 +70,8 @@ vec2 csqr(vec2 a)
  */
 float sampleVolume(vec3 texCoord)
 {
+
+
     return texture(textureSampler, texCoord).r;
 }
 
@@ -139,8 +141,8 @@ void accumulation(float value, float sampleRatio, inout vec4 composedColor)
     vec4 color = transferFunction(value);
     color.a = opacityCorrection(color.a, sampleRatio);
 
-    // TODO: Implement Front-to-back blending
-    composedColor = vec4(0.5) * value; // placeholder
+    composedColor.rgb = composedColor.rgb + (1 - composedColor.a)*color.rgb*color.a;
+    composedColor.a = composedColor.a + (1 - composedColor.a)*color.a;
 }
 
 /**
@@ -156,11 +158,12 @@ void mainImage(out vec4 fragColor)
 
     // camera movement
     float camSpeed = 0.5;
-    vec3 camPos = 1.5 * vec3(cos(iTime*camSpeed), 0.5, sin(iTime*camSpeed));
+    vec3 camPos = 1 * vec3(cos(iTime*camSpeed), 0.5, sin(iTime*camSpeed));
     vec3 camDir = -normalize(camPos);
     vec3 camUp = vec3(0.0, 1.0, 0.0);
     vec3 camRight = normalize(cross(camDir, camUp));
     camUp = normalize(cross(camRight, camDir));
+
 
     /************ compute ray direction (OpenGL style) *****************/
     float fovx = 2.0 * atan(tan(fovy / 2.0) * aspect);
@@ -195,11 +198,17 @@ void mainImage(out vec4 fragColor)
     /******************** main raycasting loop *******************/
     float t = tNear;
     int i = 0;
+    camPos -= vec3(0.125, 0.0, 0.125);
     while(t < tFar && i < sampleNum)
     {
         vec3 pos = camPos + t * rayDir;
+        pos += vec3(0.25,0.0,0.25);
+
         // Use normalized volume coordinate
-        vec3 texCoord = vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
+        vec3 texCoord = vec3(pos.x, pos.y, pos.z);
+//        texCoord[0] += 1;
+//        texCoord[1] += 1;
+//        texCoord[2] += 1;
         float value = sampleVolume(texCoord);
 
         accumulation(value, sampleRatio, finalColor);

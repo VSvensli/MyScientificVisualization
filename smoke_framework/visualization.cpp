@@ -1,6 +1,7 @@
 #include "visualization.h"
 
 #include "constants.h"
+#include "interpolation.h"
 #include "mainwindow.h"
 
 #include <QDebug>
@@ -209,6 +210,31 @@ void Visualization::drawGlyphs()
      * vectorMagnitude: Use this value to scale the glyphs. I.e. higher values are visualized using larger glyphs. Row-major, size given by the m_numberOfGlyphs*.
      */
     modelTransformationMatrices = std::vector<float>(numberOfInstances * 16U, 0.0F); // Remove this placeholder initialization
+
+    int x = 0;
+    int y = 0;
+    float xSpace = float(m_DIM)/float(m_numberOfGlyphsX);
+    float ySpace = float(m_DIM)/float(m_numberOfGlyphsY);
+
+    for(size_t i = 0; i < numberOfInstances; i++){
+        float theta = std::atan2(vectorDirectionX[i],vectorDirectionY[i]);
+
+        x += 1;
+         if (x == m_numberOfGlyphsX){
+             x = 0;
+             y += 1;
+         }
+
+         std::vector<float> tMatrix({std::cos(theta) * vectorMagnitude[i], -std::sin(theta)                       ,0                   ,0,
+                                     std::sin(theta)                     , std::cos(theta) * vectorMagnitude[i]   ,0                   ,0,
+                                       0                                 , 0                                      ,vectorMagnitude[i]  ,0,
+                                       x *  m_glyphCellWidth      , y*m_glyphCellHeight            ,0                   ,1});
+
+
+         for(size_t j = 0; j < 16; j++){
+            modelTransformationMatrices[j + i*16] = tMatrix[j];
+        }
+    }
 
 
     glBindVertexArray(0);
@@ -667,10 +693,10 @@ static QVector4D transferFunction(float value)
     // Define colors for the colormap
     QVector3D const colorNode0{0.0F, 0.0F, 1.0F}; // blue
     // QVector3D const colorNode1{1.0F, 1.0F, 1.0F}; // white
-     QVector3D const colorNode1{0.0F, 1.0F, 0.0F}; // green
+    QVector3D const colorNode1{0.0F, 1.0F, 0.0F}; // green
     QVector3D const colorNode2{1.0F, 0.0F, 0.0F}; // red
 
-    value /= 255.0F; // to range [0...1]
+    //value /= 255.0F; // to range [0...1]
 
     float alpha = value * 0.5F; // value;
     if (value < 0.2F)
@@ -713,12 +739,47 @@ std::vector<QVector4D> Visualization::computePreIntegrationLookupTable(size_t co
 
     // TODO: modify the transferFunction and add necessary functions
 
-    // placeholder values
     std::vector<QVector4D> lookupTable;
-    for (size_t idx = 0U; idx < DIM * DIM; ++idx)
-        lookupTable.push_back({0.5F, 0.5F, 0.5F, 1.0F});
+    float sfIdx = 0;
+    float sbIdx = 0;
+    for (size_t idx = 0U; idx < DIM * DIM; ++idx){
 
+
+        sfIdx += 1;
+        sbIdx = floor(idx/DIM);
+
+        float sb = sbIdx/DIM;
+        float sf = sfIdx/DIM;
+        qDebug() << sf;
+
+        float dt = 1.0;
+        float tStar = dt/L;
+        float O = 0;
+        QVector3D C;
+
+        for(float t = 0.0; t < dt; t=t+tStar){
+            float s = sb + ((sf-sb)*t)/dt;
+            QVector4D color = transferFunction(s);
+
+            float alpha = color[3];
+            QVector3D c{color.x(),color.y(),color.z()};
+
+            alpha = opacityCorrection(alpha,(1/L));
+
+            C = C + (1-O)*alpha*c;
+            O = O + (1-O)*alpha;
+
+        }
+
+        if (sfIdx == DIM){
+            sfIdx = 0;
+        }
+        QVector4D output{C.x(),C.y(),C.z(),O};
+        lookupTable.push_back(output);
+
+    }
     return lookupTable;
+
 }
 
 void Visualization::onMessageLogged(QOpenGLDebugMessage const &Message) const

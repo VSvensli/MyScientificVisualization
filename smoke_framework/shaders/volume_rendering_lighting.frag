@@ -4,8 +4,8 @@
 // TODO If you want to change from central to intermediate differences, do it here by commenting/uncommenting
 // the corresponding define
 //#define USE_SOBEL
-//#define USE_CENTRAL
-#define USE_INTERMEDIATE
+#define USE_CENTRAL
+//#define USE_INTERMEDIATE
 
 in vec2 uv;
 
@@ -19,6 +19,8 @@ out vec4 color;
 const vec4 sphere1 = vec4(0, 0, 0, 1);
 const vec4 sphere2 = vec4(1, 1, 1, 1.5);
 const vec4 sphere3 = vec4(1, 0, 3, 0.5);
+
+
 
 // density of objects
 const float s1Dens = 0.015;
@@ -172,9 +174,23 @@ bool intersectBoundingBox(vec3 rayOrig, vec3 rayDir, out float tNear, out float 
  */
 vec3 gradientCentral(vec3 pos)
 {
-    vec3 result;
-    //TODO: Insert codes here
-    return result;
+    vec3 grad = vec3(0,0,0);
+    float pointVal = sampleVolume(pos);
+
+    vec3 point0 = pos;
+    vec3 point1 = pos;
+
+    for(int i = 0; i < 3; i++){
+        vec3 f1 = pos;
+        vec3 f2 = pos;
+        point0[i] += voxelWidth;
+        point1[i] -= voxelWidth;
+        float gradientDifference = sampleVolume(point0)/2 + sampleVolume(point1)/2;
+        grad[i] = gradientDifference - pointVal;
+    }
+
+    grad = normalize(grad);
+    return grad;
 }
 
 /**
@@ -185,9 +201,17 @@ vec3 gradientCentral(vec3 pos)
  */
 vec3 gradientIntermediate(vec3 pos)
 {
-    vec3 result;
-    //TODO: Insert codes here
-    return result;
+    vec3 grad=vec3(0,0,0);
+    float result = sampleVolume(pos);
+
+    for(int i = 0; i < 3; i++){
+        vec3 f1 = pos;
+        f1[i] += voxelWidth;
+        grad[i] = (sampleVolume(f1)-result);
+    }
+
+    grad = normalize(grad);
+    return grad;
 }
 
 /**
@@ -201,8 +225,25 @@ vec3 gradientIntermediate(vec3 pos)
  */
 vec4 lighting(vec4 diffuseColor, vec3 normal, vec3 eyeDir)
 {
-    // TODO Insert code here
-    vec4 color = diffuseColor;
+
+    // Normalize
+    vec3 N = normalize(normal);
+    vec3 V = normalize(eyeDir);
+    vec3 L = normalize(lightDir);
+    vec3 H = normalize(L + V);
+
+    vec4 amb = ka * diffuseColor;
+    vec4 dif = kd * diffuseColor * max(dot(L,N),0);
+    vec4 spc = ks * diffuseColor * pow(max(dot(H, N), 0.0),exponent);
+
+    amb.a = 1.0;
+    dif.a = 0.0;
+    spc.a = 0.0;
+
+    color =  diffuseColor * amb ;
+    color += diffuseColor * lightColor * dif;
+    color += diffuseColor * specularColor* spc;
+
     return color;
 }
 

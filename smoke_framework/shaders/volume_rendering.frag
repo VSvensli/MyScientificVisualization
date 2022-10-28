@@ -127,22 +127,45 @@ bool intersectBoundingBox(vec3 rayOrig, vec3 rayDir, out float tNear, out float 
 vec3 gradientCentral(vec3 pos)
 {
     // TODO: Insert code here
-
-    return vec3(1.0F, 0.0F, 0.0F); // placeholder value
+    return vec3(1,0,0);
 }
 
 vec3 gradientIntermediate(vec3 pos)
 {
-    // TODO: Insert code here
+    vec3 grad=vec3(0,0,0);
+    float result = sampleVolume(pos);
 
-    return vec3(1.0F, 0.0F, 0.0F); // placeholder value
+    for(int i = 0; i < 3; i++){
+        vec3 f1 = pos;
+        f1[i] += voxelWidth;
+        grad[i] = (sampleVolume(f1)-result);
+    }
+
+    grad = normalize(grad);
+    return grad;
 }
 
 vec4 lighting(vec4 diffuseColor, vec3 normal, vec3 eyeDir)
 {
-    // TODO: Insert code here
+    // Normalize
+    vec3 N = normalize(normal);
+    vec3 V = normalize(eyeDir);
+    vec3 L = normalize(lightDir);
+    vec3 H = normalize(L + V);
 
-    return vec4(0.5F, 0.5F, 0.5F, 1.0F); // placeholder value
+    vec4 amb = ka * diffuseColor;
+    vec4 dif = kd * diffuseColor * max(dot(L,N),0);
+    vec4 spc = ks * diffuseColor * pow(max(dot(H, N), 0.0),exponent);
+
+    amb.a = 1.0;
+    dif.a = 0.0;
+    spc.a = 0.0;
+
+    color =  diffuseColor * amb ;
+    color += diffuseColor * lightColor * dif;
+    color += diffuseColor * specularColor* spc;
+
+    return color;
 }
 
 // *** *** //
@@ -167,7 +190,7 @@ const int technique = 0; // technique = 0: accumulation, 1: maximum intensity pr
 /**
  * Accumulation composition
  *
- * @param sample: current sample value.
+ * @param value: current sample value.
  * @param samplingRatio: the ratio between current sampling rate and the original. (ray step)
  * @param composedColor: blended color (both input and output)
  */
@@ -176,8 +199,8 @@ void accumulation(float value, float sampleRatio, inout vec4 composedColor)
     vec4 color = transferFunction(value);
     color.a = opacityCorrection(color.a, sampleRatio);
 
-    // TODO: Implement Front-to-back blending
-    composedColor = vec4(0.5) * value; // placeholder
+    composedColor.rgb = composedColor.rgb + (1 - composedColor.a)*color.rgb*color.a;
+    composedColor.a = composedColor.a + (1 - composedColor.a)*color.a;
 }
 
 /**
@@ -190,7 +213,7 @@ void accumulation(float value, float sampleRatio, inout vec4 composedColor)
  */
 void maximumIntensity(float value, inout float maxIntense)
 {
-    // TODO: Record maximum intensity along the ray.
+    maxIntense = max(maxIntense,value);
 }
 
 /**
@@ -203,7 +226,8 @@ void maximumIntensity(float value, inout float maxIntense)
  */
 void sumIntensity(float value, inout float sumIntense, inout int hitCount)
 {
-    // TODO: sum up the intensity along the ray.
+    sumIntense += value;
+    hitCount += 1;
 }
 
 /**
@@ -272,8 +296,10 @@ void mainImage(out vec4 fragColor)
         vec3 texCoord = vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
         float value = sampleVolume(texCoord);
 
-        if (technique == 0)
+        if (technique == 0){
             accumulation(value, sampleRatio, finalColor);
+            finalGradient += gradientIntermediate(pos);
+        }
         else if (technique == 1)
             maximumIntensity(value, maxIntense);
         else if (technique == 2)
@@ -285,18 +311,19 @@ void mainImage(out vec4 fragColor)
     }
 
 
-    // TODO: Determine final color:
     if (technique == 0)
     {
-        // TODO: color for accumulation
+        finalColor = finalColor;
+        finalColor = lighting(finalColor, -normalize(finalGradient), -rayDir);
     }
     else if (technique == 1)
     {
-        // TODO: color for max. intensity projection
+        finalColor = transferFunction(maxIntense);
+
     }
     else if (technique == 2)
     {
-        // TODO: color for average intensity
+        finalColor =  transferFunction(sumIntense/hitCount);
     }
 
     fragColor.rgb = mix(background.rgb, finalColor.rgb, finalColor.a);

@@ -129,13 +129,13 @@ float opacityCorrection(in float alpha, in float sampleRatio)
  * @param samplingRatio: the ratio between current sampling rate and the original. (ray step)
  * @param composedColor: blended color (both input and output)
  */
-void accumulation(float value, float sampleRatio, inout vec4 composedColor)
+void accumulation(vec4 color, float sampleRatio, inout vec4 composedColor)
 {
-    vec4 color = transferFunction(value);
     color.a = opacityCorrection(color.a, sampleRatio);
 
-    // TODO: Add (or implement) Front-to-back compositing
-    composedColor = vec4(0.5) * value + composedColor * 0.0001F; // placeholder
+    vec3 c = composedColor.rgb + (1 - composedColor.a)*color.rgb*color.a;
+    float alpha = composedColor.a + (1 - composedColor.a)*color.a;
+    composedColor = vec4(c,alpha);
 }
 
 /**
@@ -147,10 +147,10 @@ void accumulation(float value, float sampleRatio, inout vec4 composedColor)
 void mainImage(out vec4 fragColor)
 {
     // show the lookup table
-    /*
-    fragColor = texture(lookupTable, uv);
-    return;
-    */
+
+//    fragColor = texture(lookupTable, uv);
+//    return;
+
     
     float aspect = iResolution.x / iResolution.y;
 
@@ -205,24 +205,37 @@ void mainImage(out vec4 fragColor)
 
     float t = tNear;
     int i = 0;
+    vec4 tf;
+
     while(t < tFar && i < sampleNum)
     {
+
         vec3 pos = camPos + t * rayDir;
         // Use normalized volume coordinate
         vec3 texCoord = vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
-        float value = sampleVolume(texCoord);
+        float s_f = sampleVolume(texCoord);
+
+        pos = camPos + (t+tstep) * rayDir;
+        // Use normalized volume coordinate
+        texCoord = vec3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5);
+        float s_b = sampleVolume(texCoord);
+
+
 
         // TODO: Modify to use the pre-integration table you generated in the previous sub-task.
         // Here available as the 2D texture "lookupTable".
-        finalColor += texture(lookupTable, vec2(0.5F, 0.5F)) * 0.0001F; // placeholder
 
-        accumulation(value, sampleRatio, finalColor);
+        tf = texture(lookupTable, vec2(s_b,s_f));
+        accumulation(tf,sampleRatio,finalColor);
 
         t += tstep;
     }
 
     fragColor.rgb = mix(background.rgb, finalColor.rgb, finalColor.a);
     fragColor.a = 1.0F;
+
+
+
 }
 
 void main()
