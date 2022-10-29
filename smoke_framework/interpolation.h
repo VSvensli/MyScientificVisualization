@@ -19,15 +19,15 @@ namespace interpolation
     template <typename inVector>
     std::vector<float> interpolateSquareVector(inVector const &values, size_t const sideSize, size_t const xMax, size_t const yMax)
     {
-        std::vector<float> interpolatedValues(xMax*yMax);
+        std::vector<float> interpolatedValues(xMax*yMax,0.0);
 
-        float xDist = float(sideSize/xMax); // The distance between sample points in x direction
-        float yDist = float(sideSize/yMax); // The distance between sample points in y direction
+        float xDist = float(sideSize/float(xMax)); // The distance between sample points in x direction
+        float yDist = float(sideSize/float(yMax)); // The distance between sample points in y direction
 
-        for(int j = 0; j < yMax; j++){
-            for(int i = 0; i < xMax; i++){
+        for(size_t j = 0; j < yMax; j++){
+            for(size_t i = 0; i < xMax; i++){
 
-                int idx = i + j* yMax;
+                int idx = i + j * xMax;
 
                 // Point to find the value of
                 float x = xDist*i;

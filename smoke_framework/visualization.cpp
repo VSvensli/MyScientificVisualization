@@ -192,7 +192,7 @@ void Visualization::drawGlyphs()
         mainWindowPtr->setVectorDataMax(currentMinMax.y());
     }
 
-    size_t const numberOfInstances = m_numberOfGlyphsX * m_numberOfGlyphsY;
+    size_t numberOfInstances = m_numberOfGlyphsX*m_numberOfGlyphsY;
 
     // Create model transformation matrices
     std::vector<float> modelTransformationMatrices;
@@ -209,30 +209,46 @@ void Visualization::drawGlyphs()
      * vectorDirectionX, vectorDirectionY: To which direction the glyph should point. Row-major, size given by the m_numberOfGlyphs*.
      * vectorMagnitude: Use this value to scale the glyphs. I.e. higher values are visualized using larger glyphs. Row-major, size given by the m_numberOfGlyphs*.
      */
-    modelTransformationMatrices = std::vector<float>(numberOfInstances * 16U, 0.0F); // Remove this placeholder initialization
+
+    int n = int(m_numberOfGlyphsX)*int(m_numberOfGlyphsY);
+    modelTransformationMatrices = std::vector<float>(n * 16U, 0.0F); // Remove this placeholder initialization
 
     int x = 0;
     int y = 0;
+
     float xSpace = float(m_DIM)/float(m_numberOfGlyphsX);
     float ySpace = float(m_DIM)/float(m_numberOfGlyphsY);
 
-    for(size_t i = 0; i < numberOfInstances; i++){
-        float theta = std::atan2(vectorDirectionX[i],vectorDirectionY[i]);
+    for(size_t i = 0; i < vectorMagnitude.size(); i++){
+        float theta = std::atan2(vectorDirectionY[i],vectorDirectionX[i]);
+        theta = (theta*360)/(2*M_PI);
+        theta -= 90;
+
+
+
+
+
+        QMatrix4x4 trans;
+
+        float tX = x * xSpace *  m_cellWidth  + m_glyphCellWidth;
+        float tY = y * ySpace *  m_cellHeight + m_glyphCellHeight;
 
         x += 1;
-         if (x == m_numberOfGlyphsX){
+        y = floor(float(i)/float(m_numberOfGlyphsX));
+
+        trans.translate(tX,tY,0);
+        trans.scale(vectorMagnitude[i]);
+        trans.rotate(theta,1,0,1);
+
+
+        trans.transposed();
+        float* tData = trans.data();
+
+        for(size_t j = 0; j < 16; j++){
+            modelTransformationMatrices[j + i*16] = tData[j];
+        }
+        if (x == m_numberOfGlyphsX){
              x = 0;
-             y += 1;
-         }
-
-         std::vector<float> tMatrix({std::cos(theta) * vectorMagnitude[i], -std::sin(theta)                       ,0                   ,0,
-                                     std::sin(theta)                     , std::cos(theta) * vectorMagnitude[i]   ,0                   ,0,
-                                       0                                 , 0                                      ,vectorMagnitude[i]  ,0,
-                                       x *  m_glyphCellWidth      , y*m_glyphCellHeight            ,0                   ,1});
-
-
-         for(size_t j = 0; j < 16; j++){
-            modelTransformationMatrices[j + i*16] = tMatrix[j];
         }
     }
 
@@ -750,7 +766,6 @@ std::vector<QVector4D> Visualization::computePreIntegrationLookupTable(size_t co
 
         float sb = sbIdx/DIM;
         float sf = sfIdx/DIM;
-        qDebug() << sf;
 
         float dt = 1.0;
         float tStar = dt/L;
