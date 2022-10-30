@@ -89,14 +89,14 @@ Isoline::Isoline(std::vector<float> const &values,
 
             //Ambiguos if:
             if (s[0] != s[1] && s[0] != s[2] && s[0] == s[3]){
+                int last_idx = m_vertices.size()-1;
                 float Ax = (f[0]-f[2])/(f[0]+f[3]-f[2]-f[1]);
                 Ax = x[0] + m_cellSideLength* Ax;
                 // If s[0] and mid_point are dissimilar, keep order.
-                if(x[0] > Ax){
+                if(m_vertices[last_idx-3].x() > Ax){
                     continue;
                 }
                 // If not, rearrange the last 3 indicies of m_vertices
-                int last_idx = m_vertices.size()-1;
                 QVector2D cache;
                 cache = m_vertices[last_idx-2];
                 m_vertices[last_idx-2] = m_vertices[last_idx-1];

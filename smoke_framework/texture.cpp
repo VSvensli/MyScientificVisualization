@@ -28,13 +28,15 @@ std::vector<Color> Texture::createRainbowTexture(size_t const numberOfColors)
     std::vector<Color> newTurboColorMap;
 
     newTurboColorMap.reserve(3U * numberOfColors);
+    float step = fullTurboColorMap.size()/(numberOfColors);
+
     for (size_t i = 0U; i < numberOfColors; ++i)
     {
-        float step = i*fullTurboColorMap.size()/(numberOfColors-1);
+        float idx = i*step;
         // Check if index is a whole number
-        float remainder = step - floorf(step);
+        float remainder = idx - floorf(idx);
 
-        Color interpolateColor = fullTurboColorMap[ceil(step)-1]*(1-remainder) + fullTurboColorMap[ceil(step)]*remainder;
+        Color interpolateColor = fullTurboColorMap[floor(idx)]*(1-remainder) + fullTurboColorMap[ceil(idx)]*remainder;
         newTurboColorMap.push_back(interpolateColor);
     }
 

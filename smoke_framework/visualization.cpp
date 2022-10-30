@@ -224,10 +224,6 @@ void Visualization::drawGlyphs()
         theta = (theta*360)/(2*M_PI);
         theta -= 90;
 
-
-
-
-
         QMatrix4x4 trans;
 
         float tX = x * xSpace *  m_cellWidth  + m_glyphCellWidth;
@@ -311,7 +307,7 @@ void Visualization::applyQuantization(std::vector<float> &scalarValues) const
     }
 
 
-    unsigned int const L = std::pow(2,m_quantizationBits)-1; // placeholder value
+    unsigned int const L = std::pow(2,m_quantizationBits)-1;
 
 
     // Convert the image's data back to floating point values, so that it can be processed as usual.
@@ -482,11 +478,11 @@ void Visualization::applySlicing(std::vector<float> &scalarValues)
         // xIdx is constant
         // i is the ith row of x at columnt sliceIdx
         // j is the jth row of t
-        for(size_t i=0U; i< m_DIM;i++)
+        for(size_t t=0U; t< m_DIM;t++)
         {
-            for(size_t j= 0U; j < m_DIM; j++)
+            for(size_t i= 0U; i < m_DIM; i++)
             {
-                m_slice.push_back(m_slicingCube[j][i*m_DIM + m_sliceIdx]);
+                m_slice.push_back(m_slicingCube[t][i + m_DIM * m_sliceIdx]);
             }
         }
         break;
@@ -495,11 +491,11 @@ void Visualization::applySlicing(std::vector<float> &scalarValues)
         // yIdx is constant
         // i is the ith column of y at row sliceIdx
         // j is the jth row of t
-        for(size_t i=0U; i< m_DIM;i++)
+        for(size_t t=0U; t< m_DIM;t++)
         {
-            for(size_t j= 0U; j < m_DIM; j++)
+            for(size_t i= 0U; i < m_DIM; i++)
             {
-                m_slice.push_back(m_slicingCube[j][i+m_DIM * m_sliceIdx]);
+                m_slice.push_back(m_slicingCube[t][i*m_DIM + m_sliceIdx]);
             }
         }
         break;
@@ -622,32 +618,6 @@ std::vector<float> Visualization::forceFieldDivergence() const
 std::vector<QVector3D> Visualization::computeNormals(std::vector<float> heights) const
 {
     std::vector<QVector3D> h (heights.size(), QVector3D(0,0,1));
-
-//    std::vector<float> dx;
-//    std::vector<float> dy;
-
-//    for(size_t x = 0U; x < m_DIM; x++){
-//        for(size_t y = 0U; y < m_DIM; y++){
-
-//            size_t idx = x + y * m_DIM;
-
-//            size_t xIdx = x+1;
-//            if (xIdx > m_DIM){
-//                xIdx = 0;
-//            }
-//            size_t yIdx = y+1;
-//            if (yIdx > m_DIM){
-//                yIdx = 0;
-//            }
-
-//            float dx = heights[xIdx + y * m_DIM] - heights[idx];
-//            float dy = heights[x + yIdx * m_DIM] - heights[idx];
-//            h[idx][0] = dx;
-//            h[idx][1] = dy;
-//        }
-
-//    }
-
     std::vector<std::vector<int>> kernelX{{1,0,-1},
                                           {2,0,-2},
                                           {1,0,-1}};
@@ -751,7 +721,7 @@ static float opacityCorrection(float const alpha, float const sampleRatio)
 
 std::vector<QVector4D> Visualization::computePreIntegrationLookupTable(size_t const DIM) const
 {
-    float const L = 100.0F; // total number of steps from 0 to delta-t
+    int const L = 100; // total number of steps from 0 to delta-t
 
     // TODO: modify the transferFunction and add necessary functions
 
@@ -761,34 +731,39 @@ std::vector<QVector4D> Visualization::computePreIntegrationLookupTable(size_t co
     for (size_t idx = 0U; idx < DIM * DIM; ++idx){
 
 
-        sfIdx += 1;
-        sbIdx = floor(idx/DIM);
 
-        float sb = sbIdx/DIM;
-        float sf = sfIdx/DIM;
+        sbIdx = floor(idx/DIM); // range[0-63] assumiing DIM = 64
+
+        if (sfIdx == DIM){      // range[0-63] assumiing DIM = 64
+            sfIdx = 0;
+        }
+
+        float sb = sbIdx/(DIM-1); //range [0-1]
+        float sf = sfIdx/(DIM-1); //range [0-1]
 
         float dt = 1.0;
-        float tStar = dt/L;
+        float tStar = dt/float(L); // Increment
         float O = 0;
         QVector3D C;
 
-        for(float t = 0.0; t < dt; t=t+tStar){
-            float s = sb + ((sf-sb)*t)/dt;
-            QVector4D color = transferFunction(s);
+        for(int i = 0; i < L;i++){
 
+            float t = tStar*float(i);
+            float s = sb + (sf-sb)*(t/dt);  //Find s
+            QVector4D color = transferFunction(s); //Take the TF of s
+
+            // Color composting
             float alpha = color[3];
             QVector3D c{color.x(),color.y(),color.z()};
 
-            alpha = opacityCorrection(alpha,(1/L));
+            alpha = opacityCorrection(alpha,tStar/dt);
 
             C = C + (1-O)*alpha*c;
             O = O + (1-O)*alpha;
-
         }
 
-        if (sfIdx == DIM){
-            sfIdx = 0;
-        }
+        sfIdx += 1;
+        //Writing to lookupTable
         QVector4D output{C.x(),C.y(),C.z(),O};
         lookupTable.push_back(output);
 

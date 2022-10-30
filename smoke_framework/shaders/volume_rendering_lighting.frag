@@ -177,16 +177,12 @@ vec3 gradientCentral(vec3 pos)
     vec3 grad = vec3(0,0,0);
     float pointVal = sampleVolume(pos);
 
-    vec3 point0 = pos;
-    vec3 point1 = pos;
-
     for(int i = 0; i < 3; i++){
-        vec3 f1 = pos;
-        vec3 f2 = pos;
+        vec3 point0 = pos;
+        vec3 point1 = pos;
         point0[i] += voxelWidth;
         point1[i] -= voxelWidth;
-        float gradientDifference = sampleVolume(point0)/2 + sampleVolume(point1)/2;
-        grad[i] = gradientDifference - pointVal;
+        grad[i] = ((sampleVolume(point0)/2)-pointVal) + (pointVal-(sampleVolume(point1)/2));
     }
 
     grad = normalize(grad);
@@ -205,9 +201,9 @@ vec3 gradientIntermediate(vec3 pos)
     float result = sampleVolume(pos);
 
     for(int i = 0; i < 3; i++){
-        vec3 f1 = pos;
-        f1[i] += voxelWidth;
-        grad[i] = (sampleVolume(f1)-result);
+        vec3 tempPos = pos;
+        tempPos[i] += voxelWidth;
+        grad[i] = (sampleVolume(tempPos)-result);
     }
 
     grad = normalize(grad);
@@ -242,7 +238,7 @@ vec4 lighting(vec4 diffuseColor, vec3 normal, vec3 eyeDir)
 
     color =  diffuseColor * amb ;
     color += diffuseColor * lightColor * dif;
-    color += diffuseColor * specularColor* spc;
+    color += diffuseColor * specularColor * spc;
 
     return color;
 }

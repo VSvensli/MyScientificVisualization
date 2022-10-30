@@ -18,8 +18,6 @@ void main()
     // - Use the height change variable to show areas of low change in gray, but areas of large change in color (use linear interpolation).
     // color = vec4(.0F, 1.0F, 1.0F, 1.0F) * value * shading * heightChange * texture(textureSampler, 0.0F); // placeholder
 
-
-
   color = texture(textureSampler, value);
   color = vec4(gray*(1-heightChange),1.0F) + color*heightChange;
   color = color * shading;

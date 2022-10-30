@@ -133,9 +133,8 @@ void accumulation(vec4 color, float sampleRatio, inout vec4 composedColor)
 {
     color.a = opacityCorrection(color.a, sampleRatio);
 
-    vec3 c = composedColor.rgb + (1 - composedColor.a)*color.rgb*color.a;
-    float alpha = composedColor.a + (1 - composedColor.a)*color.a;
-    composedColor = vec4(c,alpha);
+    composedColor.rgb = composedColor.rgb + (1 - composedColor.a)*color.rgb;
+    composedColor.a = composedColor.a + (1 - composedColor.a)*color.a;
 }
 
 /**
@@ -221,11 +220,7 @@ void mainImage(out vec4 fragColor)
         float s_b = sampleVolume(texCoord);
 
 
-
-        // TODO: Modify to use the pre-integration table you generated in the previous sub-task.
-        // Here available as the 2D texture "lookupTable".
-
-        tf = texture(lookupTable, vec2(s_b,s_f));
+        tf = texture(lookupTable, vec2(s_f,s_b));
         accumulation(tf,sampleRatio,finalColor);
 
         t += tstep;
